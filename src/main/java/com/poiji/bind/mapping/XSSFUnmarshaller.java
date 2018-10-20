@@ -54,23 +54,42 @@ abstract class XSSFUnmarshaller implements Unmarshaller {
         WorkBookContentHandler wbch = (WorkBookContentHandler) reader.getContentHandler();
         List<WorkBookSheet> sheets = wbch.getSheets();
 
-        int requestedIndex = options.sheetIndex();
-        int nonHiddenSheetIndex = 0;
-        int sheetCounter = 0;
+        final String requestedName = options.sheetName();
+        if (requestedName != null) {
+            int sheetCounter = 0;
 
-        SheetIterator iter = (SheetIterator) workbookReader.getSheetsData();
-        while (iter.hasNext()) {
-            try (InputStream stream = iter.next()) {
-                WorkBookSheet wbs = sheets.get(sheetCounter);
-                if (wbs.getState().equals("visible")) {
-                    if (nonHiddenSheetIndex == requestedIndex) {
-                        processSheet(styles, reader, readOnlySharedStringsTable, type, stream, consumer);
+            SheetIterator iter = (SheetIterator) workbookReader.getSheetsData();
+            while (iter.hasNext()) {
+                try (InputStream stream = iter.next()) {
+                    WorkBookSheet wbs = sheets.get(sheetCounter);
+                    if (requestedName.equals(wbs.getName())) {
+                        if (wbs.getState().equals("visible")) {
+                            processSheet(styles, reader, readOnlySharedStringsTable, type, stream, consumer);
+                        }
                         return;
                     }
-                    nonHiddenSheetIndex++;
                 }
+                sheetCounter++;
             }
-            sheetCounter++;
+        } else {
+            int requestedIndex = options.sheetIndex();
+            int nonHiddenSheetIndex = 0;
+            int sheetCounter = 0;
+
+            SheetIterator iter = (SheetIterator) workbookReader.getSheetsData();
+            while (iter.hasNext()) {
+                try (InputStream stream = iter.next()) {
+                    WorkBookSheet wbs = sheets.get(sheetCounter);
+                    if (wbs.getState().equals("visible")) {
+                        if (nonHiddenSheetIndex == requestedIndex) {
+                            processSheet(styles, reader, readOnlySharedStringsTable, type, stream, consumer);
+                            return;
+                        }
+                        nonHiddenSheetIndex++;
+                    }
+                }
+                sheetCounter++;
+            }
         }
     }
 

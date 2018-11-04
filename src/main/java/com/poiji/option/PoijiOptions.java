@@ -3,6 +3,7 @@ package com.poiji.option;
 import com.poiji.exception.PoijiException;
 
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 
 import static com.poiji.util.PoijiConstants.DEFAULT_DATE_PATTERN;
 import static com.poiji.util.PoijiConstants.DEFAULT_DATE_TIME_FORMATTER;
@@ -14,6 +15,7 @@ public final class PoijiOptions {
 
     private int skip;
     private int sheetIndex;
+    private String sheetName;
     private String password;
     private String dateRegex;
     private String datePattern;
@@ -96,12 +98,23 @@ public final class PoijiOptions {
     }
 
     private PoijiOptions setSheetIndex(int sheetIndex) {
+        this.sheetName = null;
         this.sheetIndex = sheetIndex;
         return this;
     }
 
     public int sheetIndex() {
         return sheetIndex;
+    }
+
+    private PoijiOptions setSheetName(String sheetName) {
+        this.sheetIndex = 0;
+        this.sheetName = sheetName;
+        return this;
+    }
+
+    public String sheetName(){
+        return sheetName;
     }
 
     public String getDateRegex() {
@@ -126,6 +139,7 @@ public final class PoijiOptions {
 
         private int skip = 1;
         private int sheetIndex;
+        private String sheetName;
         private String password;
         private String dateRegex;
         private boolean dateLenient;
@@ -143,17 +157,22 @@ public final class PoijiOptions {
         }
 
         public PoijiOptions build() {
-            return new PoijiOptions()
+            final PoijiOptions poijiOptions = new PoijiOptions()
                     .setSkip(skip)
                     .setPassword(password)
                     .setPreferNullOverDefault(preferNullOverDefault)
                     .setDatePattern(datePattern)
                     .setDateTimeFormatter(dateTimeFormatter)
-                    .setSheetIndex(sheetIndex)
                     .setIgnoreHiddenSheets(ignoreHiddenSheets)
                     .setTrimCellValue(trimCellValue)
                     .setDateRegex(dateRegex)
                     .setDateLenient(dateLenient);
+            if (sheetName != null) {
+                poijiOptions.setSheetName(sheetName);
+            } else {
+                poijiOptions.setSheetIndex(sheetIndex);
+            }
+            return poijiOptions;
         }
 
         public static PoijiOptionsBuilder settings() {
@@ -218,6 +237,26 @@ public final class PoijiOptions {
                 throw new PoijiException("Sheet index must be greater than or equal to 0");
             }
             this.sheetIndex = sheetIndex;
+            this.sheetName = null;
+            return this;
+        }
+
+        public PoijiOptionsBuilder sheetName(String sheetName) {
+            if (sheetName == null) {
+                throw new PoijiException("Sheet name cannot be null");
+            }
+            if (sheetName.isEmpty()) {
+                throw new PoijiException("Sheet name cannot be empty");
+            }
+            if (sheetName.length() > 31) {
+                throw new PoijiException("Sheet name length cannot exceed 31 characters");
+            }
+            final String[] invalidChars = { ":", "\\", "/", "?", "*", "[", "]" };
+            if (Arrays.stream(invalidChars).anyMatch(sheetName::contains)) {
+                throw new PoijiException("Sheet name cannot contains any of characters: " + String.join(" ", invalidChars));
+            }
+            this.sheetName = sheetName;
+            this.sheetIndex = 0;
             return this;
         }
 

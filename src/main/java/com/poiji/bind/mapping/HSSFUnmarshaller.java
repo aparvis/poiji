@@ -61,21 +61,34 @@ abstract class HSSFUnmarshaller implements Unmarshaller {
     }
 
     private Sheet getSheetToProcess(Workbook workbook, PoijiOptions options) {
-        int requestedIndex = options.sheetIndex();
+        final String requestedName = options.sheetName();
+        if (requestedName != null) {
+            final Sheet sheet = workbook.getSheet(requestedName);
+            if (sheet == null) {
+                throw new IllegalArgumentException("Sheet '" + requestedName + "' not found");
+            }
+            final int sheetIndex = workbook.getSheetIndex(sheet);
+            if (options.ignoreHiddenSheets() && (workbook.isSheetHidden(sheetIndex) || workbook.isSheetVeryHidden(sheetIndex))) {
+                throw new IllegalArgumentException("Sheet '" + requestedName + "' not found");
+            }
+            return sheet;
+        } else {
+            int requestedIndex = options.sheetIndex();
 
-        if (options.ignoreHiddenSheets()) {
-            int nonHiddenSheetIndex = 0;
-            for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
-                if (!workbook.isSheetHidden(i) && !workbook.isSheetVeryHidden(i)) {
-                    if (nonHiddenSheetIndex == requestedIndex) {
-                        return workbook.getSheetAt(i);
+            if (options.ignoreHiddenSheets()) {
+                int nonHiddenSheetIndex = 0;
+                for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+                    if (!workbook.isSheetHidden(i) && !workbook.isSheetVeryHidden(i)) {
+                        if (nonHiddenSheetIndex == requestedIndex) {
+                            return workbook.getSheetAt(i);
+                        }
+                        nonHiddenSheetIndex++;
                     }
-                    nonHiddenSheetIndex++;
                 }
             }
-        }
 
-        return workbook.getSheetAt(requestedIndex);
+            return workbook.getSheetAt(requestedIndex);
+        }
     }
 
     private void loadColumnTitles(Sheet sheet, int maxPhysicalNumberOfRows) {
